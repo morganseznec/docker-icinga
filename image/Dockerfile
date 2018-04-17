@@ -96,11 +96,8 @@ EXPOSE 80 443 5665
 
 ADD add/docker-entrypoint.sh /usr/local/bin
 ADD add/helpers /usr/local/bin
-ADD add/setup_icinga2 /usr/local/bin
-ADD add/setup_icinga2_features /usr/local/bin
+ADD add/setup* /usr/local/bin
 ADD add/features/* /usr/local/bin
-ADD add/setup_icingaweb2 /usr/local/bin
-ADD add/setup_icingaweb2_modules /usr/local/bin
 ADD add/modules/* /usr/local/bin
 
 RUN    chmod +x /usr/local/bin/docker-entrypoint.sh             \

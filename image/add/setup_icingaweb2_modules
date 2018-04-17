@@ -1,8 +1,31 @@
 #!/bin/bash
 
+# Director
+if evaluate_boolean "${ICINGAWEB2_MODULE_DIRECTOR}"; then
+	. /usr/local/bin/setup_icingaweb2_director
+else
+	[ ! -L /etc/icinga2/conf.d/api-user.conf ] \
+		|| rm /etc/icinga2/conf.d/api-user.conf
+	icingacli module disable director || true
+fi
+
 # Grafana
 if evaluate_boolean "${ICINGAWEB2_MODULE_GRAFANA}"; then
 	. /usr/local/bin/setup_icingaweb2_grafana
 else
 	icingacli module disable grafana || true
+fi
+
+# Graphite
+if evaluate_boolean "${ICINGAWEB2_MODULE_GRAPHITE}"; then
+	. /usr/local/bin/setup_icingaweb2_graphite
+else
+	icingacli module disable graphite || true
+fi
+
+# Monitoring
+if evaluate_boolean "${ICINGAWEB2_MODULE_MONITORING}"; then
+	. /usr/local/bin/setup_icingaweb2_monitoring
+else
+	icingacli module disable monitoring || true
 fi

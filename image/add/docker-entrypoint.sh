@@ -1,24 +1,29 @@
 #!/bin/bash
 
+CONFIGURED_FILE="/etc/icinga2/CONFIGURED"
+
 # Load helper functions
 . /usr/local/bin/helpers
 
-# Check that we can connect to a remote mysql server
-mysql_wait ${MYSQL_HOST} ${MYSQL_PORT}
-mysql_test_credentials
-
-file="CONFIGURED"
-if [ -f "$file" ]; then
-	echo "=> Icinga2 already configured"
+if [ -z ${DB_TYPE+x} ]; then
+	NO_IDO=true
 else
-	# Setup Icinga2
-	. /usr/local/bin/setup_icinga2
-	. /usr/local/bin/setup_icingaweb2
-	. /usr/local/bin/setup_icinga2_features
-	. /usr/local/bin/setup_icingaweb2_modules
+	db_wait ${DB_HOST} ${DB_PORT}
+	db_test_credentials
 fi
 
-# chown -R www-data /etc/icingaweb2/enabledModules
+if [ -f "$CONFIGURED_FILE" ]; then
+	echo "=> Icinga2 already configured"
+else
+	. /usr/local/bin/setup_php
+	. /usr/local/bin/setup_icinga2
+	. /usr/local/bin/setup_icinga2_features
+	if evaluate_boolean "${NO_IDO}"; then
+		. /usr/local/bin/setup_icingaweb2
+		. /usr/local/bin/setup_icingaweb2_modules
+	fi
+fi
+
 chown -R www-data:icingaweb2 /etc/icingaweb2
 mkdir -p /var/log/apache2
 chown -R www-data:adm /var/log/apache2
@@ -28,7 +33,9 @@ a2ensite 000-default
 service apache2 start
 service icinga2 start
 
-touch CONFIGURED
+if evaluate_boolean "${RECONFIGURE}"; then
+	touch $CONFIGURED_FILE
+fi
 
 # Tail logs
 tail -f -n 500 /var/log/icinga2/startup.log

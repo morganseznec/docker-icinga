@@ -1,0 +1,20 @@
+#!/bin/bash
+
+PATH_PHP=/etc/php/7.0/apache2
+SRC_PHP=/etc/php/7.0/apache2.orig
+
+if [ -z "$(ls -A $PATH_PHP)" ]; then
+	echo "=> Copying fresh config-files for php"
+	cp -R $SRC_PHP/* $PATH_PHP/
+fi
+
+if [ -z ${PHP_TIMEZONE+x} ]; then
+	PHP_TIMEZONE="UTC";
+fi
+
+sed -i 's@.*date.timezone =.*@date.timezone = '${PHP_TIMEZONE}'@' "${PATH_PHP}/php.ini" >/dev/null 2>/dev/null
+
+mkdir -p /var/lib/php/sessions
+chown -R www-data:www-data /var/lib/php/sessions
+
+echo "=>PHP setup [OK]"
