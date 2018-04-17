@@ -1,0 +1,139 @@
+version: '3'
+
+services:
+  icingaweb2:
+    build:
+      context: ../image
+      args:
+        http_proxy: "http://10.1.1.251:3128"
+    container_name: icinga_web
+    restart: on-failure
+    environment:
+      - ICINGAWEB2_MYSQL_HOST=mysql
+      - ICINGAWEB2_MYSQL_PORT=3306
+      - ICINGAWEB2_MYSQL_DATABASE=icingaweb2
+      - ICINGAWEB2_MYSQL_USER=icingaweb2
+      - ICINGAWEB2_MYSQL_PASSWORD=QHWlggblWsHk2tjQzQOv
+      - ICINGAWEB2_MYSQL_CHARSET=
+      - ICINGAWEB2_MYSQL_USE_SSL=0
+      - ICINGAWEB2_ADMIN_USER=morgan
+      - ICINGAWEB2_ADMIN_PASSWORD=Soleil123
+      - ICINGA2_MYSQL_IDO_HOST=mysql
+      - ICINGA2_MYSQL_IDO_DATABASE=icinga_ido
+      - ICINGA2_MYSQL_IDO_USER=icinga_ido
+      - ICINGA2_MYSQL_IDO_PASSWORD=CJQwDN64ZgmDEPjLqXrU
+      - ICINGAWEB2_MODULE_GRAFANA=1
+      - ICINGAWEB2_MODULE_GRAFANA_HOST=grafana:3000
+      - ICINGAWEB2_MODULE_GRAFANA_PROTOCOL=http
+      - ICINGAWEB2_MODULE_GRAFANA_DEFAULT_DASHBOARD=base-metrics
+      - ICINGAWEB2_MODULE_GRAFANA_DEFAULT_ORG_ID=1
+      - ICINGAWEB2_MODULE_GRAFANA_DEFAULT_DASHBOARD_STORE=db
+      - ICINGAWEB2_MODULE_GRAFANA_THEME=light
+      - ICINGAWEB2_MODULE_GRAFANA_DATASOURCE=influxdb
+      - ICINGAWEB2_MODULE_GRAFANA_ACCESS_MODE=iframe
+      - ICINGAWEB2_MODULE_GRAFANA_TIME_RANGE=6h
+      - ICINGA2_FEATURE_INFLUXDB=1
+      - ICINGA2_FEATURE_INFLUXDB_HOST=influxdb
+      - ICINGA2_FEATURE_INFLUXDB_PORT=8086
+      - ICINGA2_FEATURE_INFLUXDB_DATABASE=icinga2
+      - ICINGA2_FEATURE_INFLUXDB_USER=icinga2
+      - ICINGA2_FEATURE_INFLUXDB_PASSWORD=changeme
+      - ICINGA2_FEATURE_INFLUXDB_ENABLE_SEND_THRESHOLDS=true
+      - ICINGA2_FEATURE_INFLUXDB_ENABLE_SEND_METADATA=true
+      - ICINGA2_FEATURE_INFLUXDB_THRESHOLD=1024
+      - ICINGA2_FEATURE_INFLUXDB_FLUSH_INTERVAL=10s
+      - ICINGA2_FEATURE_GRAPHITE=0
+      - ICINGA2_FEATURE_GRAPHITE_WEB_URL=http://graphite
+      - ICINGA2_FEATURE_GRAPHITE_WEB_INSECURE=1
+      - ICINGA2_FEATURE_GRAPHITE_HOST=graphite
+      - ICINGA2_FEATURE_GRAPHITE_PORT=2003
+      - ICINGA2_FEATURE_GRAPHITE_ENABLE_SEND_THRESHOLDS=1
+      - ICINGA2_FEATURE_GRAPHITE_SEND_METADATA=1
+      - ICINGA2_FEATURE_DIRECTOR=1
+      - ICINGA2_API_DIRECTOR_USER=director
+      - ICINGA2_API_DIRECTOR_PASSWORD=changeme
+      - ICINGA2_FEATURE_DIRECTOR_MYSQL_HOST=mysql
+      - ICINGA2_FEATURE_DIRECTOR_MYSQL_DATABASE=director
+      - ICINGA2_FEATURE_DIRECTOR_MYSQL_USER=director
+      - ICINGA2_FEATURE_DIRECTOR_MYSQL_PASSWORD=5zS9eGoMzBvhqIenEaMr
+      - ICINGA2_FEATURE_DIRECTOR_MYSQL_CHARSET=utf8
+      - ICINGA2_FEATURE_AWS=1
+      - PHP_TIMEZONE=Europe/Paris
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_ROOT_PASSWORD=06ks9Ugo0wjHtleSNe96
+    volumes:
+      - ./icinga/cache:/var/cache/icinga2
+      - ./icinga/certs:/etc/apache2/ssl
+      - ./icinga/etc/icinga2:/etc/icinga2
+      - ./icinga/etc/icingaweb2:/etc/icingaweb2
+      - ./icinga/lib:/var/lib/icinga2
+      - ./icinga/sessions:/var/lib/php/sessions
+      - ./icinga/log:/var/log
+      - ./icinga/spool:/var/spool/icinga2
+      - ./icinga/etc/php:/etc/php/7.0/apache2
+      # If you want to enable outbound e-mail, create the files
+      #  - ./ssmtp/ssmtp.conf
+      #  - ./ssmtp/revaliases
+      #  and configure to your corresponding mail setup.
+      #  See: https://github.com/jjethwa/icinga2#sending-notification-mails
+      #- ./ssmtp/revaliases:/etc/ssmtp/revaliases:ro
+      #- ./ssmtp/ssmtp.conf:/etc/ssmtp/ssmtp.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+      - "5665:5665"
+  graphite:
+    image: graphiteapp/graphite-statsd
+    container_name: icinga_graphite
+    restart: on-failure
+    # ports:
+      # Nginx
+      #- "80:80"
+      #- "443:443"
+      #- "2003:2003"
+      #- "2004:2004"
+      #- "2023:2023"
+      #- "2024:2024"
+      #- "8125:8125"
+      #- "8126:8126"
+    volumes:
+      - ./graphite/conf:/opt/graphite/conf
+      - ./graphite/storage:/opt/graphite/storage
+      # - ./graphite/nginx:/etc/nginx
+      - ./graphite/statsd:/opt/statsd
+      # - ./graphite/logrotate.d:/etc/logrotate.d
+      - ./graphite/log:/var/log
+  influxdb:
+    image: influxdb
+    container_name: icinga_influxdb
+    restart: on-failure
+    ports:
+      - "8086:8086"
+      - "8083:8083"
+    environment:
+      - INFLUXDB_ADMIN_ENABLED=true
+    volumes:
+      - ./influxdb/etc/influxdb.conf:/etc/influxdb/influxdb.conf:ro
+      - ./influxdb/data:/var/lib/influxdb
+  grafana:
+    image: grafana/grafana
+    container_name: icinga_grafana
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SERVER_ROOT_URL=http://grafana
+      - GF_SECURITY_ADMIN_PASSWORD=password
+    volumes:
+      - ./grafana/etc:/etc/grafana
+      - ./grafana/data:/var/lib/grafana
+  mysql:
+    image: mariadb:latest
+    container_name: icinga_mysql
+    restart: "unless-stopped"
+    environment:
+      MYSQL_ROOT_PASSWORD: "06ks9Ugo0wjHtleSNe96"
+    command: "mysqld --character-set-server=latin1 --collation-server=latin1_general_ci"
+    volumes:
+      - ./mysql/data:/var/lib/mysql

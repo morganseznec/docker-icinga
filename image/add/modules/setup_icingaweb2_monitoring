@@ -1,0 +1,33 @@
+#!/bin/bash
+
+PATH_ICINGAWEB2=/etc/icingaweb2
+
+mkdir -p $PATH_ICINGAWEB2/modules/monitoring
+
+# backends.ini
+if [ -z "$(ls -A $PATH_ICINGAWEB2/modules/monitoring/backends.ini 2>/dev/null)" ]; then
+    cat > "$PATH_ICINGAWEB2/modules/monitoring/backends.ini" <<-END
+[icinga]
+type = "ido"
+resource = "icinga_ido"
+END
+fi
+
+# commandtransports.ini
+if [ -z "$(ls -A $PATH_ICINGAWEB2/modules/monitoring/commandtransports.ini 2>/dev/null)" ]; then
+    cat > "$PATH_ICINGAWEB2/modules/monitoring/commandtransports.ini" <<-END
+[icinga2]
+transport = "local"
+path = "/var/run/icinga2/cmd/icinga2.cmd"
+END
+fi
+
+# config.ini
+if [ -z "$(ls -A $PATH_ICINGAWEB2/modules/monitoring/config.ini 2>/dev/null)" ]; then
+    cat > "$PATH_ICINGAWEB2/modules/monitoring/config.ini" <<-END
+[security]
+protected_customvars = "*pw*,*pass*,community"
+END
+fi
+
+echo "=>Icingaweb2 Monitoring module setup [OK]"

@@ -1,0 +1,55 @@
+#!/bin/bash
+
+PATH_ICINGAWEB2=/etc/icingaweb2
+PATH_ICINGA2=/etc/icinga2
+
+mysql \
+    -h ${MYSQL_HOST} \
+    -u root -p${MYSQL_ROOT_PASSWORD} \
+    -e "CREATE DATABASE IF NOT EXISTS ${ICINGA2_FEATURE_DIRECTOR_MYSQL_DATABASE}    \
+        CHARACTER SET 'utf8';                                                       \
+        GRANT ALL ON ${ICINGA2_FEATURE_DIRECTOR_MYSQL_DATABASE}.*                   \
+        TO ${ICINGA2_FEATURE_DIRECTOR_MYSQL_USER}@'%'                               \
+        IDENTIFIED BY '${ICINGA2_FEATURE_DIRECTOR_MYSQL_PASSWORD}';"
+
+# Director Setup
+if [ -z ${ICINGA2_FEATURE_DIRECTOR_MYSQL_HOST+x} ]; then ICINGA2_FEATURE_DIRECTOR_MYSQL_HOST="mysql"; fi
+if [ -z ${ICINGA2_FEATURE_DIRECTOR_MYSQL_PORT+x} ]; then ICINGA2_FEATURE_DIRECTOR_MYSQL_PORT=3306; fi
+if [ -z ${ICINGA2_FEATURE_DIRECTOR_MYSQL_DATABASE+x} ]; then ICINGA2_FEATURE_DIRECTOR_MYSQL_DATABASE="icinga_ido"; fi
+if [ -z ${ICINGA2_FEATURE_DIRECTOR_MYSQL_USER+x} ]; then ICINGA2_FEATURE_DIRECTOR_MYSQL_USER="icinga_ido"; fi
+if [ -z ${ICINGA2_FEATURE_DIRECTOR_MYSQL_PASSWORD+x} ]; then 
+    echo "=>Icinga2 Director setup [ERROR]";
+    echo "=>Icinga2 Director MySQL password not defined";
+    exit 1;
+fi
+if [ -z ${ICINGA2_FEATURE_DIRECTOR_MYSQL_CHARSET+x} ]; then ICINGA2_FEATURE_DIRECTOR_MYSQL_CHARSET=""; fi
+if [ -z ${ICINGA2_FEATURE_DIRECTOR_MYSQL_PERSISTENT+x} ]; then ICINGA2_FEATURE_DIRECTOR_MYSQL_PERSISTENT=0; fi
+if [ -z ${ICINGA2_FEATURE_DIRECTOR_MYSQL_USE_SSL+x} ]; then ICINGA2_FEATURE_DIRECTOR_MYSQL_USE_SSL=0; fi
+
+cat >> "$PATH_ICINGAWEB2/resources.ini" <<-END
+[director]
+type = "db"
+db = "mysql"
+host = "${ICINGA2_FEATURE_DIRECTOR_MYSQL_HOST}"
+port = "${ICINGA2_FEATURE_DIRECTOR_MYSQL_PORT}"
+dbname = "${ICINGA2_FEATURE_DIRECTOR_MYSQL_DATABASE}"
+username = "${ICINGA2_FEATURE_DIRECTOR_MYSQL_USER}"
+password = "${ICINGA2_FEATURE_DIRECTOR_MYSQL_PASSWORD}"
+charset = "${ICINGA2_FEATURE_DIRECTOR_MYSQL_CHARSET}"
+persistent = "${ICINGA2_FEATURE_DIRECTOR_MYSQL_PERSISTENT}"
+use_ssl = "${ICINGA2_FEATURE_DIRECTOR_MYSQL_USE_SSL}"
+END
+
+if [ -z ${ICINGA2_API_DIRECTOR_USER+x} ]; then ICINGA2_API_DIRECTOR_USER="director"; fi
+if [ -z ${ICINGA2_API_DIRECTOR_PASSWORD+x} ]; then ICINGA2_API_DIRECTOR_PASSWORD="changeme"; fi
+
+cat > "$PATH_ICINGA2/conf.d/icinga2-api-user.conf" <<-END
+object ApiUser "${ICINGA2_API_DIRECTOR_USER}" {
+    password = "${ICINGA2_API_DIRECTOR_PASSWORD}"
+    permissions = [ "*" ]
+}
+END
+
+icingacli module enable director
+
+echo "=>Icinga2 Director setup [OK]"

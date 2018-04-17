@@ -1,0 +1,66 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# If specified value is true, return valid
+# Else return invalid
+#
+# Allows concatenation via && and ||
+evaluate_boolean() {
+	if [ "${1}" == "True" ] || \
+	   [ "${1}" == "true" ] || \
+	   [ "${1}" == "1" ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+# Test a server, if the server is available
+# Does not check, if the connection credentials are correct
+mysql_ping() {
+	local host="${1}" port="${2}"
+	echo "Pinging ${host}:${port}"
+	mysqladmin --silent ping "-h${host}" "-P${port}"
+}
+
+# Wait until a MySQL server becomes available
+# Does not check, if the connection credentials are correct
+mysql_wait() {
+	until mysql_ping "${1}" "${2}"; do
+		sleep 1
+	done
+}
+
+mysql_test_credentials() {
+	mysql -h ${MYSQL_HOST} -u root -p"${MYSQL_ROOT_PASSWORD}" -e "quit"
+}
+
+# 
+# Create database if not exists
+#
+#
+# Params: ${1}:HOST ${2}:USERNAME ${3}:PASSWORD ${4}:DATABASE ${5}:SQL_FILE
+#
+mysql_create_database() {
+	DATABASE_EXISTS=$(mysql -h "${1}" -u "${2}" -p"${3}" -e "SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '${4}'" | tail -1)
+	if [ "$DATABASE_EXISTS" != "1" ]; then
+			echo "=>${4} database does not exist... creating it"
+			mysql -h "${1}" -u "${2}" -p"${3}" -e "CREATE DATABASE IF NOT EXISTS ${4};"
+			mysql -h "${1}" -u "${2}" -p"${3}" "${4}" < "${5}"
+	fi
+}
+
+# 
+# Create user if not exists
+#
+#
+# Params: ${1}:HOST ${2}:ROOT_USERNAME ${3}:ROOT_PASSWORD ${4}:DATABASE ${5}:USERNAME ${6}:PASSWORD
+#
+mysql_create_user() {
+	USER_EXISTS=$(mysql -h "${1}" -u ${2} -p"${3}" -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${5}');" | tail -1)
+	if [ "$USER_EXISTS" != "1" ]; then
+		echo "=>MySQL user '${4}' does not exist... creating it"
+		mysql -h "${1}" -u "${2}" -p"${3}" -e "GRANT ALL ON ${4}.* TO ${5}@'%' IDENTIFIED BY '${6}';"
+	fi
+}

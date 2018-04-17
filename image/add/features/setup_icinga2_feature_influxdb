@@ -1,0 +1,53 @@
+#!/bin/bash
+
+PATH_ICINGA2=/etc/icinga2
+
+echo "=> Enabling InfluxDB feature"
+
+# InfluxDB Setup
+if [ -z ${ICINGA2_FEATURE_INFLUXDB_HOST+x} ]; then ICINGA2_FEATURE_INFLUXDB_HOST="influxdb"; fi
+if [ -z ${ICINGA2_FEATURE_INFLUXDB_PORT+x} ]; then ICINGA2_FEATURE_INFLUXDB_PORT=8086; fi
+if [ -z ${ICINGA2_FEATURE_INFLUXDB_DATABASE+x} ]; then ICINGA2_FEATURE_INFLUXDB_DATABASE="icinga2"; fi
+if [ -z ${ICINGA2_FEATURE_INFLUXDB_USER+x} ]; then ICINGA2_FEATURE_INFLUXDB_USER="icinga2"; fi
+if [ -z ${ICINGA2_FEATURE_INFLUXDB_PASSWORD+x} ]; then ICINGA2_FEATURE_INFLUXDB_PASSWORD="changeme"; fi
+if [ -z ${ICINGA2_FEATURE_INFLUXDB_ENABLE_SEND_THRESHOLDS+x} ]; then ICINGA2_FEATURE_INFLUXDB_ENABLE_SEND_THRESHOLDS=1; fi
+if [ -z ${ICINGA2_FEATURE_INFLUXDB_ENABLE_SEND_METADATA+x} ]; then ICINGA2_FEATURE_INFLUXDB_ENABLE_SEND_METADATA=1; fi
+if [ -z ${ICINGA2_FEATURE_INFLUXDB_THRESHOLD+x} ]; then ICINGA2_FEATURE_INFLUXDB_THRESHOLD=1024; fi
+if [ -z ${ICINGA2_FEATURE_INFLUXDB_FLUSH_INTERVAL+x} ]; then ICINGA2_FEATURE_INFLUXDB_FLUSH_INTERVAL=10s; fi
+
+cat > "$PATH_ICINGA2/features-available/influxdb.conf" <<-END
+library "perfdata"
+
+object InfluxdbWriter "influxdb" {
+  host = "${ICINGA2_FEATURE_INFLUXDB_HOST}"
+  port = ${ICINGA2_FEATURE_INFLUXDB_PORT}
+  database = "${ICINGA2_FEATURE_INFLUXDB_DATABASE}"
+  username = "${ICINGA2_FEATURE_INFLUXDB_USER}"
+  password = "${ICINGA2_FEATURE_INFLUXDB_PASSWORD}"
+  enable_send_thresholds = ${ICINGA2_FEATURE_INFLUXDB_ENABLE_SEND_THRESHOLDS}
+  enable_send_metadata = ${ICINGA2_FEATURE_INFLUXDB_ENABLE_SEND_METADATA}
+  flush_threshold = ${ICINGA2_FEATURE_INFLUXDB_THRESHOLD}
+  flush_interval = ${ICINGA2_FEATURE_INFLUXDB_FLUSH_INTERVAL}
+  host_template = {
+    measurement = "\$host.check_command\$"
+    tags = {
+      hostname = "\$host.name\$"
+    }
+  }
+  service_template = {
+    measurement = "\$service.check_command\$"
+    tags = {
+      hostname = "\$host.name\$"
+      service = "\$service.name\$"
+    }
+  }
+}
+END
+
+curl \
+  -POST http://${ICINGA2_FEATURE_INFLUXDB_HOST}:${ICINGA2_FEATURE_INFLUXDB_PORT}/query \
+  --data-urlencode "q=CREATE DATABASE ${ICINGA2_FEATURE_INFLUXDB_DATABASE};CREATE USER ${ICINGA2_FEATURE_INFLUXDB_USER} WITH PASSWORD '${ICINGA2_FEATURE_INFLUXDB_PASSWORD}';GRANT ALL ON ${ICINGA2_FEATURE_INFLUXDB_DATABASE} to ${ICINGA2_FEATURE_INFLUXDB_USER};"
+
+icinga2 feature enable influxdb
+
+echo "=>InfluxDB feature setup [OK]"

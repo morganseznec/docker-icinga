@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Director
+if evaluate_boolean "${ICINGA2_FEATURE_DIRECTOR}"; then
+	. /usr/local/bin/setup_icingaweb2_director
+else
+	[ ! -L /etc/icinga2/conf.d/api-user.conf ] \
+		|| rm /etc/icinga2/conf.d/api-user.conf
+	icingacli module disable director || true
+fi
+
+# InfluxDB
+if evaluate_boolean "${ICINGA2_FEATURE_INFLUXDB}"; then
+	. /usr/local/bin/setup_icinga2_feature_influxdb
+else
+	icinga2 feature disable influxdb || true
+fi
+
+# Graphite
+if evaluate_boolean "${ICINGA2_FEATURE_GRAPHITE}"; then
+	. /usr/local/bin/setup_icingaweb2_graphite
+else
+	icingacli module disable graphite || true
+fi
+
+# Monitoring module
+. /usr/local/bin/setup_icingaweb2_monitoring

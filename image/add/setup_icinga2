@@ -1,0 +1,81 @@
+#!/bin/bash
+
+PATH_ICINGA2=/etc/icinga2
+SRC_ICINGA2=/etc/icinga2.orig
+
+# Create Icinga IDO database
+mysql_create_database                                           \
+        ${MYSQL_HOST}                                           \
+        "root"                                                  \
+        ${MYSQL_ROOT_PASSWORD}                                  \
+        ${ICINGA2_MYSQL_IDO_DATABASE}                           \
+        "/usr/share/icinga2-ido-mysql/schema/mysql.sql";
+
+# Create database user for IDO database
+mysql_create_user                                               \
+        ${MYSQL_HOST}                                           \
+        "root"                                                  \
+        ${MYSQL_ROOT_PASSWORD}                                  \
+        ${ICINGA2_MYSQL_IDO_DATABASE}                           \
+        ${ICINGA2_MYSQL_IDO_USER}                               \
+        ${ICINGA2_MYSQL_IDO_PASSWORD}
+
+# Copy configuration files 
+if [ -z "$(ls -A $PATH_ICINGA2)" ]; then
+	echo "=> Copying fresh config-files for /etc/icinga2"
+	cp -R $SRC_ICINGA2/* $PATH_ICINGA2/
+fi
+
+mkdir -p    /var/log/icinga2/compat/archives               \
+            /var/lib/icinga2/api/{zones,log,repository}    \
+            /var/cache/icinga2
+
+chown -R nagios:adm /var/log/icinga2
+chown -R nagios:nagios /var/lib/icinga2
+chown -R nagios:nagios /var/spool/icinga2
+chown -R nagios:nagios /var/cache/icinga2
+chown -R nagios:root /etc/icinga2
+
+cat > /etc/icinga2/features-available/ido-mysql.conf <<-END
+/**
+ * The db_ido_mysql library implements IDO functionality
+ * for MySQL.
+ */
+
+library "db_ido_mysql"
+
+object IdoMysqlConnection "ido-mysql" {
+  user     = "${ICINGA2_MYSQL_IDO_USER}"
+  password = "${ICINGA2_MYSQL_IDO_PASSWORD}"
+  host     = "${MYSQL_HOST}"
+  port     =  ${MYSQL_PORT}
+  database = "${ICINGA2_MYSQL_IDO_DATABASE}"
+}
+END
+
+PATH_PHP=/etc/php/7.0/apache2
+SRC_PHP=/etc/php/7.0/apache2.orig
+
+if [ -z "$(ls -A $PATH_PHP)" ]; then
+	echo "=> Copying fresh config-files for php"
+	cp -R $SRC_PHP/* $PATH_PHP/
+fi
+
+sed -i 's@.*date.timezone =.*@date.timezone = '${PHP_TIMEZONE}'@' "${PATH_PHP}/php.ini" >/dev/null 2>/dev/null
+
+mkdir -p /var/lib/php/sessions
+chown -R www-data:www-data /var/lib/php/sessions
+
+# enable necessary features
+icinga2 feature enable ido-mysql livestatus compatlog command perfdata
+
+# enable modules
+icingacli module enable monitoring
+icingacli module enable doc
+
+#icinga2 API cert - regenerate new private key and certificate when running in a new container
+if [ ! -f "/etc/icinga2/pki/$(hostname).key" ]; then
+	icinga2 node setup --master
+fi
+
+echo "=>Icinga2 setup [OK]"

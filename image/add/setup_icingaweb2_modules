@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Grafana
+if evaluate_boolean "${ICINGAWEB2_MODULE_GRAFANA}"; then
+	. /usr/local/bin/setup_icingaweb2_grafana
+else
+	icingacli module disable grafana || true
+fi

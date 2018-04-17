@@ -1,0 +1,100 @@
+#!/bin/bash
+
+PATH_ICINGAWEB2=/etc/icingaweb2
+
+echo "=> Enabling Icingaweb2 grafana module"
+
+# Graphite Setup
+if [ -z ${ICINGAWEB2_MODULE_GRAFANA_HOST+x} ]; then ICINGAWEB2_MODULE_GRAFANA_HOST="grafana:3000"; fi
+if [ -z ${ICINGAWEB2_MODULE_GRAFANA_PROTOCOL+x} ]; then ICINGAWEB2_MODULE_GRAFANA_PROTOCOL="http"; fi
+if [ -z ${ICINGAWEB2_MODULE_GRAFANA_DEFAULT_DASHBOARD+x} ]; then ICINGAWEB2_MODULE_GRAFANA_DEFAULT_DASHBOARD="base-metrics"; fi
+if [ -z ${ICINGAWEB2_MODULE_GRAFANA_DEFAULT_ORG_ID+x} ]; then ICINGAWEB2_MODULE_GRAFANA_DEFAULT_ORG_ID="1"; fi
+if [ -z ${ICINGAWEB2_MODULE_GRAFANA_DEFAULT_DASHBOARD_STORE+x} ]; then ICINGAWEB2_MODULE_GRAFANA_DEFAULT_DASHBOARD_STORE="db"; fi
+if [ -z ${ICINGAWEB2_MODULE_GRAFANA_THEME+x} ]; then ICINGAWEB2_MODULE_GRAFANA_THEME="light"; fi
+if [ -z ${ICINGAWEB2_MODULE_GRAFANA_DATASOURCE+x} ]; then ICINGAWEB2_MODULE_GRAFANA_DATASOURCE="influxdb"; fi
+if [ -z ${ICINGAWEB2_MODULE_GRAFANA_ACCESS_MODE+x} ]; then ICINGAWEB2_MODULE_GRAFANA_ACCESS_MODE="iframe"; fi
+if [ -z ${ICINGAWEB2_MODULE_GRAFANA_TIME_RANGE+x} ]; then ICINGAWEB2_MODULE_GRAFANA_TIME_RANGE="6h"; fi
+
+if evaluate_boolean "${ICINGA2_FEATURE_INFLUXDB}"; then
+  echo "=>InfluxDB requested ??"
+else
+  if [ "${ICINGAWEB2_MODULE_GRAFANA_DATASOURCE}" != "influxdb" ]; then
+    echo "=>Icingaweb2 Grafana module setup [ERROR]";
+    echo "Please check that InfluxDB feature is enabled";
+    exit 1;
+  fi
+fi
+
+mkdir -p $PATH_ICINGAWEB2/modules/grafana
+
+cat > "$PATH_ICINGAWEB2/modules/grafana/config.ini" <<-END
+[grafana]
+host = "${ICINGAWEB2_MODULE_GRAFANA_HOST}"
+protocol = "${ICINGAWEB2_MODULE_GRAFANA_PROTOCOL}"
+defaultdashboard = "${ICINGAWEB2_MODULE_GRAFANA_DEFAULT_DASHBOARD}"
+defaultorgid = "${ICINGAWEB2_MODULE_GRAFANA_DEFAULT_ORG_ID}"
+defaultdashboardstore = "${ICINGAWEB2_MODULE_GRAFANA_DEFAULT_DASHBOARD_STORE}"
+theme = "${ICINGAWEB2_MODULE_GRAFANA_THEME}"
+datasource = "${ICINGAWEB2_MODULE_GRAFANA_DATASOURCE}"
+accessmode = "${ICINGAWEB2_MODULE_GRAFANA_ACCESS_MODE}"
+timerange = "${ICINGAWEB2_MODULE_GRAFANA_TIME_RANGE}"
+END
+
+cat > "$PATH_ICINGAWEB2/modules/grafana/graphs.ini" <<-END
+[ping4]
+dashboard = "base-metrics"
+panelId = "1"
+orgId = ""
+
+[ping6]
+dashboard = "base-metrics"
+panelId = "3"
+orgId = ""
+
+[hostalive]
+dashboard = "base-metrics"
+panelId = "9"
+orgId = ""
+
+[apt]
+dashboard = "base-metrics"
+panelId = "2"
+orgId = ""
+
+[load]
+dashboard = "base-metrics"
+panelId = "4"
+orgId = ""
+
+[swap]
+dashboard = "base-metrics"
+panelId = "5"
+orgId = ""
+
+[procs]
+dashboard = "base-metrics"
+panelId = "7"
+orgId = ""
+
+[ntp]
+dashboard = "base-metrics"
+panelId = "6"
+orgId = ""
+
+[users]
+dashboard = "base-metrics"
+panelId = "8"
+orgId = ""
+END
+
+#OLD_IFRAME_CODE="\$iframehtml = '<iframe src=\"%s://%s/dashboard-solo/%s/%s?var-hostname=%s&var-service=%s%s&panelId=%s&orgId=%s&theme=%s&from=now-%s&to=now\" alt=\"%s\" height=\"%d\" frameBorder=\"0\" style=\"width: 100%%;\"></iframe>';"
+#NEW_IFRAME_CODE="\$iframehtml = '<script>\$(\".module-grafana\").parent().parent().data(\"icingaRefresh\", 30);</script><iframe src=\"%s://%s/dashboard-solo/%s/%s?var-hostname=%s&var-service=%s%s&panelId=%s&orgId=%s&theme=%s&from=now-%s&to=now\" alt=\"%s\" height=\"%d\" frameBorder=\"0\" scrolling=\"no\" style=\"width: 100%%;\"></iframe>';"
+#sed -Ei "s|$OLD_IFRAME_CODE|$NEW_IFRAME_CODE|g" /usr/share/icingaweb2/modules/grafana/library/Grafana/ProvidedHook/Grapher.php
+
+# icingaweb-grafana
+icingacli module enable grafana
+
+# Disable graphing for commands without graphs
+echo "vars.grafana_graph_disable = true" >> /etc/icinga2/conf.d/services.conf
+
+echo "=>Icingaweb2 Grafana module setup [OK]"

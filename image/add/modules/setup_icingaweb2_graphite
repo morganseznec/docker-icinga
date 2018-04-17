@@ -1,0 +1,48 @@
+#!/bin/bash
+
+PATH_ICINGAWEB2=/etc/icingaweb2
+PATH_ICINGA2=/etc/icinga2
+
+echo "=> Enabling Icingaweb2 graphite module"
+
+# Graphite Setup
+if [ -z ${ICINGA2_FEATURE_GRAPHITE_WEB_URL+x} ]; then ICINGA2_FEATURE_GRAPHITE_WEB_URL="https://graphite"; fi
+if [ -z ${ICINGA2_FEATURE_GRAPHITE_WEB_INSECURE+x} ]; then ICINGA2_FEATURE_GRAPHITE_WEB_INSECURE=0; fi
+if [ -z ${ICINGA2_FEATURE_GRAPHITE_HOST+x} ]; then ICINGA2_FEATURE_GRAPHITE_HOST="graphite"; fi
+if [ -z ${ICINGA2_FEATURE_GRAPHITE_PORT+x} ]; then ICINGA2_FEATURE_GRAPHITE_PORT="2003"; fi
+if [ -z ${ICINGA2_FEATURE_GRAPHITE_ENABLE_SEND_THRESHOLDS+x} ]; then ICINGA2_FEATURE_GRAPHITE_ENABLE_SEND_THRESHOLDS=0; fi
+if [ -z ${ICINGA2_FEATURE_GRAPHITE_SEND_METADATA+x} ]; then ICINGA2_FEATURE_GRAPHITE_SEND_METADATA=0; fi
+
+if [ -z $(grep -q '[graphite]' $PATH_ICINGAWEB2/modules/graphite/config.ini)  ]; then
+
+    cat >> "$PATH_ICINGAWEB2/modules/graphite/config.ini" <<-END
+[graphite]
+url = "${ICINGA2_FEATURE_GRAPHITE_WEB_URL}"
+insecure = "${ICINGA2_FEATURE_GRAPHITE_WEB_INSECURE}"
+END
+
+fi
+
+cat > "$PATH_ICINGA2/features-available/graphite.conf" <<-END
+/**
+ * The GraphiteWriter type writes check result metrics and
+ * performance data to a graphite tcp socket.
+ */
+
+library "perfdata"
+
+object GraphiteWriter "graphite" {
+  host = "${ICINGA2_FEATURE_GRAPHITE_HOST}"
+  port = "${ICINGA2_FEATURE_GRAPHITE_PORT}"
+  enable_send_thresholds = ${ICINGA2_FEATURE_GRAPHITE_ENABLE_SEND_THRESHOLDS}
+  enable_send_metadata = ${ICINGA2_FEATURE_GRAPHITE_SEND_METADATA}
+}
+END
+
+# icingaweb-graphite
+icinga2 feature enable graphite
+icingacli module enable graphite
+[ -e /etc/icingaweb2/modules/graphite ] \
+	|| cp -r /usr/share/icingaweb2/modules/graphite/templates /etc/icingaweb2/modules/graphite
+
+echo "=>Icingaweb2 Graphite module setup [OK]"
