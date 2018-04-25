@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # InfluxDB
-if evaluate_boolean "${ICINGA2_FEATURE_INFLUXDB}"; then
+if evaluate_boolean "${ICINGA2_FEATURE_INFLUXDB:+x}"; then
 	. /usr/local/bin/setup_icinga2_feature_influxdb
 else
 	icinga2 feature disable influxdb || true

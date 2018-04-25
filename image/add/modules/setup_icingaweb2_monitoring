@@ -1,7 +1,5 @@
 #!/bin/bash
 
-PATH_ICINGAWEB2=/etc/icingaweb2
-
 mkdir -p $PATH_ICINGAWEB2/modules/monitoring
 
 # backends.ini

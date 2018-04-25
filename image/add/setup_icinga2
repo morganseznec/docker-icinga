@@ -1,5 +1,33 @@
 #!/bin/bash
 
+if [ -z ${DB_HOST:+x} ]; then 
+    echo "=>Icinga2 setup [ERROR]";
+    echo "=>Icinga2 ${DB_TYPE} Host not defined";
+    exit 1;
+fi
+
+if [ -z ${DB_ROOT_PASSWORD:+x} ]; then 
+    echo "=>Icinga2 setup [ERROR]";
+    echo "=>Icinga2 DB ${DB_TYPE} ROOT password not defined";
+    exit 1;
+fi
+
+ICINGA2_DB_IDO_HOST=${ICINGA2_DB_IDO_HOST:="${DB_HOST}"}
+ICINGA2_DB_IDO_PORT=${ICINGA2_DB_IDO_PORT:=${DB_PORT}}
+ICINGA2_DB_IDO_DATABASE=${ICINGA2_DB_IDO_DATABASE:="icinga_ido"}
+ICINGA2_DB_IDO_USER=${ICINGA2_DB_IDO_USER:="icinga_ido"}
+ICINGA2_DB_IDO_CHARSET=${ICINGA2_DB_IDO_CHARSET:="latin1"}
+ICINGA2_DB_IDO_PERSISTENT=${ICINGA2_DB_IDO_PERSISTENT:=0}
+ICINGA2_DB_IDO_USE_SSL=${ICINGA2_DB_IDO_USE_SSL:=0}
+
+if [ -z ${ICINGA2_DB_IDO_PASSWORD:+x} ]; then 
+    echo "=>Icinga2 IDO setup [ERROR]";
+    echo "=>Icinga2 IDO ${DB_TYPE} password not defined";
+    exit 1;
+fi
+
+DB_OBJECT_NAME="IdoMysqlConnection"
+
 PATH_ICINGA2=/etc/icinga2
 SRC_ICINGA2=/etc/icinga2.orig
 
@@ -19,40 +47,43 @@ chown -R nagios:nagios /var/spool/icinga2
 chown -R nagios:nagios /var/cache/icinga2
 chown -R nagios:root /etc/icinga2
 
-if [ -z ${MYSQL_HOST+x} ]; then
+if [ ${DB_HOST:+x} ]; then
 
-        icinga2 feature enable ido-mysql
+        icinga2 feature enable "ido-${DB_TYPE}"
 
         # Create Icinga IDO database
-        mysql_create_database                                           \
-                ${MYSQL_HOST}                                           \
-                "root"                                                  \
-                ${MYSQL_ROOT_PASSWORD}                                  \
-                ${ICINGA2_MYSQL_IDO_DATABASE}                           \
-                "/usr/share/icinga2-ido-mysql/schema/mysql.sql";
+        db_create_database                                              \
+                ${DB_HOST}                                              \
+                ${DB_PORT}                                              \
+                ${DB_ROOT_USER}                                         \
+                ${DB_ROOT_PASSWORD}                                     \
+                ${ICINGA2_DB_IDO_DATABASE}                              \
+                ${ICINGA2_DB_IDO_CHARSET}                               \
+                "/usr/share/icinga2-ido-${DB_TYPE}/schema/${DB_TYPE}.sql";
 
         # Create database user for IDO database
-        mysql_create_user                                               \
-                ${MYSQL_HOST}                                           \
-                "root"                                                  \
-                ${MYSQL_ROOT_PASSWORD}                                  \
-                ${ICINGA2_MYSQL_IDO_DATABASE}                           \
-                ${ICINGA2_MYSQL_IDO_USER}                               \
-                ${ICINGA2_MYSQL_IDO_PASSWORD}
-        cat > /etc/icinga2/features-available/ido-mysql.conf <<-END
-/**
-* The db_ido_mysql library implements IDO functionality
-* for MySQL.
-*/
+        db_create_user                                                  \
+                ${DB_HOST}                                              \
+                ${DB_PORT}                                              \
+                ${DB_ROOT_USER}                                         \
+                ${DB_ROOT_PASSWORD}                                     \
+                ${ICINGA2_DB_IDO_DATABASE}                              \
+                ${ICINGA2_DB_IDO_USER}                                  \
+                ${ICINGA2_DB_IDO_PASSWORD}
+        
+        if [ "${DB_TYPE}" == "pgsql" ]; then
+                DB_OBJECT_NAME="IdoPgsqlConnection"
+        fi
 
-library "db_ido_mysql"
+        cat > /etc/icinga2/features-available/ido-${DB_TYPE}.conf <<-END
+library "db_ido_${DB_TYPE}"
 
-object IdoMysqlConnection "ido-mysql" {
-user     = "${ICINGA2_MYSQL_IDO_USER}"
-password = "${ICINGA2_MYSQL_IDO_PASSWORD}"
-host     = "${MYSQL_HOST}"
-port     =  ${MYSQL_PORT}
-database = "${ICINGA2_MYSQL_IDO_DATABASE}"
+object $DB_OBJECT_NAME "ido-${DB_TYPE}" {
+user     = "${ICINGA2_DB_IDO_USER}"
+password = "${ICINGA2_DB_IDO_PASSWORD}"
+host     = "${ICINGA2_DB_IDO_HOST}"
+port     =  ${ICINGA2_DB_IDO_PORT}
+database = "${ICINGA2_DB_IDO_DATABASE}"
 }
 END
 fi

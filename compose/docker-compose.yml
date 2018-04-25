@@ -16,12 +16,12 @@ services:
       - ICINGAWEB2_MYSQL_PASSWORD=QHWlggblWsHk2tjQzQOv
       - ICINGAWEB2_MYSQL_CHARSET=
       - ICINGAWEB2_MYSQL_USE_SSL=0
-      - ICINGAWEB2_ADMIN_USER=morgan
-      - ICINGAWEB2_ADMIN_PASSWORD=Soleil123
-      - ICINGA2_MYSQL_IDO_HOST=mysql
-      - ICINGA2_MYSQL_IDO_DATABASE=icinga_ido
-      - ICINGA2_MYSQL_IDO_USER=icinga_ido
-      - ICINGA2_MYSQL_IDO_PASSWORD=CJQwDN64ZgmDEPjLqXrU
+      - ICINGAWEB2_ADMIN_USER=icingaadmin
+      - ICINGAWEB2_ADMIN_PASSWORD=changeme
+      - ICINGA2_DB_IDO_HOST=mysql
+      - ICINGA2_DB_IDO_DATABASE=icinga_ido
+      - ICINGA2_DB_IDO_USER=icinga_ido
+      - ICINGA2_DB_IDO_PASSWORD=CJQwDN64ZgmDEPjLqXrU
       - ICINGAWEB2_MODULE_GRAFANA=1
       - ICINGAWEB2_MODULE_GRAFANA_HOST=grafana:3000
       - ICINGAWEB2_MODULE_GRAFANA_PROTOCOL=http
@@ -59,9 +59,10 @@ services:
       - ICINGA2_FEATURE_DIRECTOR_MYSQL_CHARSET=utf8
       - ICINGA2_FEATURE_AWS=1
       - PHP_TIMEZONE=Europe/Paris
-      - MYSQL_HOST=mysql
-      - MYSQL_PORT=3306
-      - MYSQL_ROOT_PASSWORD=06ks9Ugo0wjHtleSNe96
+      - DB_TYPE=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_ROOT_PASSWORD=06ks9Ugo0wjHtleSNe96
     volumes:
       - ./icinga/cache:/var/cache/icinga2
       - ./icinga/certs:/etc/apache2/ssl

@@ -3,6 +3,14 @@
 PATH_ICINGAWEB2=/etc/icingaweb2
 SRC_ICINGAWEB2=/etc/icingaweb2.orig
 
+ICINGAWEB2_DB_HOST=${ICINGAWEB2_DB_HOST:="${DB_HOST}"}
+ICINGAWEB2_DB_PORT=${ICINGAWEB2_DB_PORT:="${DB_PORT}"}
+ICINGAWEB2_DB_DATABASE=${ICINGAWEB2_DB_DATABASE:="icingaweb2"}
+ICINGAWEB2_DB_USER=${ICINGAWEB2_DB_USER:="icingaweb2"}
+ICINGAWEB2_DB_CHARSET=${ICINGAWEB2_DB_CHARSET:="latin1"}
+ICINGAWEB2_DB_PERSISTENT=${ICINGAWEB2_DB_PERSISTENT:=0}
+ICINGAWEB2_DB_USE_SSL=${ICINGAWEB2_DB_USE_SSL:=0}
+
 if [ -z "$(ls -A $PATH_ICINGAWEB2)" ]; then
 	echo "=> Copying fresh files for icingaweb2"
     cp -r $SRC_ICINGAWEB2/* $PATH_ICINGAWEB2
@@ -12,81 +20,59 @@ mkdir -p /var/log/icingaweb2
 chown -R www-data:adm /var/log/icingaweb2
 
 # Create Icingaweb2 database
-mysql_create_database                                           \
-        ${ICINGAWEB2_MYSQL_HOST}                                \
-        "root"                                                  \
-        ${MYSQL_ROOT_PASSWORD}                                  \
-        ${ICINGAWEB2_MYSQL_DATABASE}                            \
-        "/usr/share/icingaweb2/etc/schema/mysql.schema.sql";
+db_create_database                                              \
+        ${ICINGAWEB2_DB_HOST}                                   \
+        ${ICINGAWEB2_DB_PORT}                                   \
+        ${DB_ROOT_USER}                                         \
+        ${DB_ROOT_PASSWORD}                                     \
+        ${ICINGAWEB2_DB_DATABASE}                               \
+        ${ICINGAWEB2_DB_CHARSET}                                \
+        "/usr/share/icingaweb2/etc/schema/${DB_TYPE}.schema.sql";
 
 # Create database user for Icingaweb2 database
-mysql_create_user                                               \
-        ${ICINGAWEB2_MYSQL_HOST}                                \
-        "root"                                                  \
-        ${MYSQL_ROOT_PASSWORD}                                  \
-        ${ICINGAWEB2_MYSQL_DATABASE}                            \
-        ${ICINGAWEB2_MYSQL_USER}                                \
-        ${ICINGAWEB2_MYSQL_PASSWORD}
+db_create_user                                                  \
+        ${ICINGAWEB2_DB_HOST}                                   \
+        ${ICINGAWEB2_DB_PORT}                                   \
+        ${DB_ROOT_USER}                                         \
+        ${DB_ROOT_PASSWORD}                                     \
+        ${ICINGAWEB2_DB_DATABASE}                               \
+        ${ICINGAWEB2_DB_USER}                                   \
+        ${ICINGAWEB2_DB_PASSWORD}
 
-# Web2 Setup
-if [ -z ${ICINGAWEB2_MYSQL_PORT+x} ]; then ICINGAWEB2_MYSQL_PORT=3306; fi
-if [ -z ${ICINGAWEB2_MYSQL_DATABASE+x} ]; then ICINGAWEB2_MYSQL_USER="icingaweb2"; fi
-if [ -z ${ICINGAWEB2_MYSQL_USER+x} ]; then ICINGAWEB2_MYSQL_USER="icingaweb2"; fi
-if [ -z ${ICINGAWEB2_MYSQL_PASSWORD+x} ]; then 
-    echo "=>Icingaweb2 setup [ERROR]";
-    echo "=>Icingaweb2 MySQL password not defined";
-    exit 1;
-fi
-if [ -z ${ICINGAWEB2_MYSQL_CHARSET+x} ]; then ICINGAWEB2_MYSQL_CHARSET=""; fi
-if [ -z ${ICINGAWEB2_MYSQL_PERSISTENT+x} ]; then ICINGAWEB2_MYSQL_PERSISTENT=0; fi
-if [ -z ${ICINGAWEB2_MYSQL_USE_SSL+x} ]; then ICINGAWEB2_MYSQL_USE_SSL=0; fi
-
-# IDO Setup
-if [ -z ${ICINGA2_MYSQL_IDO_PORT+x} ]; then ICINGA2_MYSQL_IDO_PORT=3306; fi
-if [ -z ${ICINGA2_MYSQL_IDO_DATABASE+x} ]; then ICINGA2_MYSQL_IDO_DATABASE="icinga_ido"; fi
-if [ -z ${ICINGA2_MYSQL_IDO_USER+x} ]; then ICINGA2_MYSQL_IDO_USER="icinga_ido"; fi
-if [ -z ${ICINGA2_MYSQL_IDO_PASSWORD+x} ]; then 
-    echo "=>Icinga2 IDO setup [ERROR]";
-    echo "=>Icinga2 IDO MySQL password not defined";
-    exit 1;
-fi
-if [ -z ${ICINGA2_MYSQL_IDO_CHARSET+x} ]; then ICINGA2_MYSQL_IDO_CHARSET=""; fi
-if [ -z ${ICINGA2_MYSQL_IDO_PERSISTENT+x} ]; then ICINGA2_MYSQL_IDO_PERSISTENT=0; fi
-if [ -z ${ICINGA2_MYSQL_IDO_USE_SSL+x} ]; then ICINGA2_MYSQL_IDO_USE_SSL=0; fi
 
 if [ -z "$(ls -A $PATH_ICINGAWEB2/resources.ini 2>/dev/null)" ]; then
 
     cat > "$PATH_ICINGAWEB2/resources.ini" <<-END
 [icingaweb_db]
 type = "db"
-db = "mysql"
-host = "${ICINGAWEB2_MYSQL_HOST}"
-port = "${ICINGAWEB2_MYSQL_PORT}"
-dbname = "${ICINGAWEB2_MYSQL_DATABASE}"
-username = "${ICINGAWEB2_MYSQL_USER}"
-password = "${ICINGAWEB2_MYSQL_PASSWORD}"
-charset = "${ICINGAWEB2_MYSQL_CHARSET}"
-persistent = "${ICINGAWEB2_MYSQL_PERSISTENT}"
-use_ssl = "${ICINGAWEB2_MYSQL_USE_SSL}"
+db = "${DB_TYPE}"
+host = "${ICINGAWEB2_DB_HOST}"
+port = "${ICINGAWEB2_DB_PORT}"
+dbname = "${ICINGAWEB2_DB_DATABASE}"
+username = "${ICINGAWEB2_DB_USER}"
+password = "${ICINGAWEB2_DB_PASSWORD}"
+charset = "${ICINGAWEB2_DB_CHARSET}"
+persistent = "${ICINGAWEB2_DB_PERSISTENT}"
+use_ssl = "${ICINGAWEB2_DB_USE_SSL}"
 
 [icinga_ido]
 type = "db"
-db = "mysql"
-host = "${ICINGA2_MYSQL_IDO_HOST}"
-port = "${ICINGA2_MYSQL_IDO_PORT}"
-dbname = "${ICINGA2_MYSQL_IDO_DATABASE}"
-username = "${ICINGA2_MYSQL_IDO_USER}"
-password = "${ICINGA2_MYSQL_IDO_PASSWORD}"
-charset = "${ICINGA2_MYSQL_IDO_CHARSET}"
-persistent = "${ICINGA2_MYSQL_IDO_PERSISTENT}"
-use_ssl = "${ICINGA2_MYSQL_IDO_USE_SSL}"
+db = "${DB_TYPE}"
+host = "${ICINGA2_DB_IDO_HOST}"
+port = "${ICINGA2_DB_IDO_PORT}"
+dbname = "${ICINGA2_DB_IDO_DATABASE}"
+username = "${ICINGA2_DB_IDO_USER}"
+password = "${ICINGA2_DB_IDO_PASSWORD}"
+charset = "${ICINGA2_DB_IDO_CHARSET}"
+persistent = "${ICINGA2_DB_IDO_PERSISTENT}"
+use_ssl = "${ICINGA2_DB_IDO_USE_SSL}"
 END
 
 fi
 
 # Icingaweb2 Admin configuration
 if [ -z ${ICINGAWEB2_ADMIN_USER+x} ];then ICINGAWEB2_ADMIN_USER="icingaadmin"; fi
-if [ -z ${ICINGAWEB2_ADMIN_PASSWORD+x} ];then ICINGAWEB2_ADMIN_PASSWORD="Ch4ng3m3!"; fi
+if [ -z ${ICINGAWEB2_ADMIN_PASSWORD+x} ];then ICINGAWEB2_ADMIN_PASSWORD="changeme"; fi
 
 # authentication.ini
 if [ -z "$(ls -A $PATH_ICINGAWEB2/authentication.ini 2>/dev/null)" ]; then
@@ -141,13 +127,22 @@ fi
 
 # Admin account
 ICINGAWEB2_ADMIN_PASSWORD_HASH=$(openssl passwd -1 "${ICINGAWEB2_ADMIN_PASSWORD}")
-mysql   -h "${MYSQL_HOST}" \
-        -u "root" \
-        -p"${MYSQL_ROOT_PASSWORD}" \
-        "${ICINGAWEB2_MYSQL_DATABASE}" \
-        -e "SHOW DATABASES;USE ${ICINGAWEB2_MYSQL_DATABASE}; SHOW TABLES; INSERT IGNORE INTO icingaweb_user (name, active, password_hash) VALUES ('${ICINGAWEB2_ADMIN_USER}', 1, '${ICINGAWEB2_ADMIN_PASSWORD_HASH}');"
+
+db_insert_admin_user                    \
+    ${DB_HOST}                          \
+    ${DB_PORT}                          \
+    ${DB_ROOT_USER}                     \
+    ${DB_ROOT_PASSWORD}                 \
+    ${ICINGAWEB2_DB_DATABASE}           \
+    ${ICINGAWEB2_ADMIN_USER}            \
+    ${ICINGAWEB2_ADMIN_PASSWORD_HASH}
 
 chmod 2770 /etc/icingaweb2
 chown -R www-data:icingaweb2 /etc/icingaweb2
+
+head -c 12 /dev/urandom | base64 | tee /etc/icingaweb2/setup.token
+chmod 0660 /etc/icingaweb2/setup.token
+
+echo "=>Token: $(cat /etc/icingaweb2/setup.token)"
 
 echo "=>Icingaweb2 setup [OK]"

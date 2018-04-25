@@ -30,16 +30,21 @@ docker pull morganseznec/icinga2
 ### Docker command line
 
 ```shell
-docker run --name icinga2 \
-    -p 80:80 \
-    -e ICINGAWEB2_ADMIN_USER=icingaadmin \
-    -e ICINGAWEB2_ADMIN_PASSWORD=secret-pw \
-    -d morganseznec/icinga2:latest
+docker run --name icinga2 -p 80:80 -d morganseznec/icinga2:latest
 ```
 
-This will download and start a new Icinga2 instance and forward HTTP port from the container to the host. The admin account is created by passing `ICINGAWEB2_ADMIN_USER` and `ICINGAWEB2_ADMIN_PASSWORD` environment variables.
+This will download and start a new Icinga2 instance and forward HTTP port from the container to the host.
 
-You can now login to the web interface.
+As you are not using all the available variables to setup your Icinga2 instance, the Icingaweb2 setup wizard will be available by visiting the web page.
+
+To generate the token:
+
+```shell
+docker exec -it icinga2 icingacli setup token create;
+
+```
+
+if an external database is used, the admin account can be created by passing `ICINGAWEB2_ADMIN_USER` and `ICINGAWEB2_ADMIN_PASSWORD` environment variables.
 
 ### Docker with docker-compose
 
@@ -50,10 +55,6 @@ services:
     image: morganseznec/icinga2:latest
     container_name: icinga2
     restart: on-failure
-    environment:
-      - ICINGAWEB2_ADMIN_USER=icingaadmin
-      - ICINGAWEB2_ADMIN_PASSWORD=secret-pw
-      - PHP_TIMEZONE=Europe/Paris
     ports:
       - "80:80"
       - "443:443"
@@ -69,10 +70,6 @@ services:
     image: morganseznec/icinga2:latest
     container_name: icinga2
     restart: on-failure
-    environment:
-      - ICINGAWEB2_ADMIN_USER=icingaadmin
-      - ICINGAWEB2_ADMIN_PASSWORD=secret-pw
-      - PHP_TIMEZONE=Europe/Paris
     ports:
       - "80:80"
       - "443:443"
@@ -88,5 +85,9 @@ services:
       placement:
         constraints: [node.role == manager]
 ```
+
+## Volumes
+
+
 
 ## Docker Environment Variables

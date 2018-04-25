@@ -16,16 +16,14 @@ evaluate_boolean() {
 	fi
 }
 
-# Test a server, if the server is available
-# Does not check, if the connection credentials are correct
+# Test a mysql server
 mysql_ping() {
 	local host="${1}" port="${2}"
-	echo "Pinging ${host}:${port}"
+	echo "Pinging MySQL server ${host}:${port}"
 	mysqladmin --silent ping "-h${host}" "-P${port}"
 }
 
 # Wait until a MySQL server becomes available
-# Does not check, if the connection credentials are correct
 mysql_wait() {
 	until mysql_ping "${1}" "${2}"; do
 		sleep 1
@@ -33,7 +31,7 @@ mysql_wait() {
 }
 
 mysql_test_credentials() {
-	mysql -h ${MYSQL_HOST} -u root -p"${MYSQL_ROOT_PASSWORD}" -e "quit"
+	mysql -h "${1}" -P "${2}" -u "${4}" -p"${5}" <<< "exit"
 }
 
 # 
@@ -43,11 +41,11 @@ mysql_test_credentials() {
 # Params: ${1}:HOST ${2}:USERNAME ${3}:PASSWORD ${4}:DATABASE ${5}:SQL_FILE
 #
 mysql_create_database() {
-	DATABASE_EXISTS=$(mysql -h "${1}" -u "${2}" -p"${3}" -e "SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '${4}'" | tail -1)
+	DATABASE_EXISTS=$(mysql -h "${1}" -P "${2}" -u "${3}" -p"${4}" <<< "SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '${5}'" | tail -1)
 	if [ "$DATABASE_EXISTS" != "1" ]; then
-			echo "=>${4} database does not exist... creating it"
-			mysql -h "${1}" -u "${2}" -p"${3}" -e "CREATE DATABASE IF NOT EXISTS ${4};"
-			mysql -h "${1}" -u "${2}" -p"${3}" "${4}" < "${5}"
+			echo "=>${5} database does not exist... creating it"
+			mysql -h "${1}" -P "${2}" -u "${3}" -p"${4}" <<< "CREATE DATABASE IF NOT EXISTS ${5} CHARACTER SET '${6}';"
+			mysql -h "${1}" -P "${2}" -u "${3}" -p"${4}" "${5}" < "${7}"
 	fi
 }
 
@@ -58,9 +56,112 @@ mysql_create_database() {
 # Params: ${1}:HOST ${2}:ROOT_USERNAME ${3}:ROOT_PASSWORD ${4}:DATABASE ${5}:USERNAME ${6}:PASSWORD
 #
 mysql_create_user() {
-	USER_EXISTS=$(mysql -h "${1}" -u ${2} -p"${3}" -e "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${5}');" | tail -1)
+	USER_EXISTS=$(mysql -h "${1}" -P "${2}" -u "${3}" -p"${4}" <<< "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${6}');" | tail -1)
 	if [ "$USER_EXISTS" != "1" ]; then
-		echo "=>MySQL user '${4}' does not exist... creating it"
-		mysql -h "${1}" -u "${2}" -p"${3}" -e "GRANT ALL ON ${4}.* TO ${5}@'%' IDENTIFIED BY '${6}';"
+		echo "=>MySQL user '${5}' does not exist... creating it"
+		mysql -h "${1}" -P "${2}" -u "${3}" -p"${4}" <<< "GRANT ALL PRIVILEGES ON ${5}.* TO '${6}'@'%' IDENTIFIED BY '${7}'; FLUSH PRIVILEGES;"
+	fi
+}
+
+mysql_insert_admin_user() {
+	mysql   -h "${1}" 					\
+			-P "${2}"					\
+        	-u "${3}" 					\
+        	-p"${4}" 					\
+        	"${5}" 						\
+        	<<< "INSERT IGNORE INTO 							\
+				icingaweb_user (name, active, password_hash) 	\
+				VALUES ('${6}', 1, '${7}');"
+}
+
+# Test a mysql server
+pgsql_ping() {
+	local host="${1}" port="${2}"
+	local PGUSER="${PGUSER:="postgres"}"
+	echo "Pinging PosgreSQL server ${host}:${port}"
+	pg_isready -q -h "${host}" -p "${port}" -U "$PGUSER"
+}
+
+# Wait until a PostgreSQL server becomes available
+pgsql_wait() {
+	until pgsql_ping "${1}" "${2}"; do
+		sleep 1
+	done
+}
+
+pgsql_test_credentials() {
+	PGPASSWORD="${5}" psql -h "${1}" -p "${2}" -d "${3}" -U "${4}" -e "quit"
+}
+
+pgsql_create_database() {
+	if PGPASSWORD="${4}" psql -lqt -h "${1}" -p "${2}" -U "${3}" | cut -d \| -f 1 | grep -qw "${5}"; then
+		echo "=>${5} database already exists..."
+	else
+		echo "=>${5} database does not exist... creating it"
+		PGPASSWORD="${4}" psql -h "${1}" -p "${2}" -U "${3}" -c "CREATE DATABASE ${5} ENCODING '${6}';"
+		PGPASSWORD="${4}" psql -h "${1}" -p "${2}" -U "${3}" -d "${5}" < "${7}"
+	fi
+}
+
+pgsql_create_user() {
+	PGPASSWORD="${4}" psql -h "${1}" -p "${2}" -U "${3}" -c "CREATE USER ${6} WITH PASSWORD '${7}'; GRANT ALL PRIVILEGES ON DATABASE ${5} to ${6};"
+}
+
+pgsql_insert_admin_user() {
+	PGPASSWORD="${4}" psql -h "${1}" -p "${2}" -U "${3}" -d "${5}" -c "INSERT INTO 	\
+		icingaweb_user (name, active, password_hash) 								\
+			SELECT '${6}', 1, '${7}' 												\
+				WHERE NOT EXISTS 													\
+					(SELECT 1 FROM icingaweb_user WHERE name='${6}')"
+}
+
+db_ping() {
+	if [ "${DB_TYPE}" == "mysql" ]; then
+		mysql_ping "${1}" "${2}"
+	elif [ "${DB_TYPE}" == "pgsql" ]; then
+		pgsql_ping "${1}" "${2}"
+	else
+		echo "=> Ping [ERROR]";
+		exit 1;
+	fi
+}
+
+db_wait() {
+	if [ "${DB_TYPE}" == "mysql" ]; then
+		mysql_wait "${1}" "${2}"
+	elif [ "${DB_TYPE}" == "pgsql" ]; then
+		pgsql_wait "${1}" "${2}"
+	fi
+}
+
+db_test_credentials() {
+	if [ "${DB_TYPE}" == "mysql" ]; then
+		mysql_test_credentials "${1}" "${2}" "${3}" "${4}" "${5}"
+	elif [ "${DB_TYPE}" == "pgsql" ]; then
+		pgsql_test_credentials "${1}" "${2}" "${3}" "${4}" "${5}"
+	fi
+}
+
+db_create_database() {
+	if [ "${DB_TYPE}" == "mysql" ]; then
+		mysql_create_database "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}"
+	elif [ "${DB_TYPE}" == "pgsql" ]; then
+		pgsql_create_database "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}"
+	fi
+}
+
+db_create_user() {
+	if [ "${DB_TYPE}" == "mysql" ]; then
+		mysql_create_user "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}"
+	elif [ "${DB_TYPE}" == "pgsql" ]; then
+		pgsql_create_user "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}"
+	fi
+}
+
+db_insert_admin_user() {
+	if [ "${DB_TYPE}" == "mysql" ]; then
+		mysql_insert_admin_user "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}"
+	elif [ "${DB_TYPE}" == "pgsql" ]; then
+		pgsql_insert_admin_user "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}"
 	fi
 }
