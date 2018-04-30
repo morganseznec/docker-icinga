@@ -1,0 +1,90 @@
+version: '3'
+
+services:
+  icingaweb2:
+    build:
+      context: ../../image
+    container_name: icinga_web
+    restart: "unless-stopped"
+    environment:
+      - ICINGAWEB2_DB_DATABASE=icingaweb2
+      - ICINGAWEB2_DB_USER=icingaweb2
+      - ICINGAWEB2_DB_PASSWORD=QHWlggblWsHk2tjQzQOv
+      - ICINGAWEB2_DB_CHARSET=latin1
+      - ICINGAWEB2_DB_USE_SSL=0
+      - ICINGAWEB2_ADMIN_USER=icingaadmin
+      - ICINGAWEB2_ADMIN_PASSWORD=changeme
+      - ICINGAWEB2_MODULE_GRAFANA=1
+      - ICINGAWEB2_MODULE_GRAFANA_HOST=grafana:3000
+      - ICINGAWEB2_MODULE_GRAFANA_PROTOCOL=http
+      - ICINGAWEB2_MODULE_GRAFANA_DEFAULT_DASHBOARD=base-metrics
+      - ICINGAWEB2_MODULE_GRAFANA_DEFAULT_ORG_ID=1
+      - ICINGAWEB2_MODULE_GRAFANA_DEFAULT_DASHBOARD_STORE=db
+      - ICINGAWEB2_MODULE_GRAFANA_THEME=light
+      - ICINGAWEB2_MODULE_GRAFANA_DATASOURCE=influxdb
+      - ICINGAWEB2_MODULE_GRAFANA_ACCESS_MODE=iframe
+      - ICINGAWEB2_MODULE_GRAFANA_TIME_RANGE=6h
+      - ICINGA2_FEATURE_INFLUXDB=1
+      - ICINGA2_FEATURE_INFLUXDB_HOST=influxdb
+      - ICINGA2_FEATURE_INFLUXDB_PORT=8086
+      - ICINGA2_FEATURE_INFLUXDB_DATABASE=icinga2
+      - ICINGA2_FEATURE_INFLUXDB_USER=icinga2
+      - ICINGA2_FEATURE_INFLUXDB_PASSWORD=changeme
+      - ICINGA2_FEATURE_INFLUXDB_ENABLE_SEND_THRESHOLDS=true
+      - ICINGA2_FEATURE_INFLUXDB_ENABLE_SEND_METADATA=true
+      - ICINGA2_FEATURE_INFLUXDB_THRESHOLD=1024
+      - ICINGA2_FEATURE_INFLUXDB_FLUSH_INTERVAL=10s
+      - ICINGA2_API_DIRECTOR_USER=director
+      - ICINGA2_API_DIRECTOR_PASSWORD=changeme
+      - ICINGAWEB2_MODULE_DIRECTOR=1
+      - ICINGAWEB2_MODULE_DIRECTOR_DB_DATABASE=director
+      - ICINGAWEB2_MODULE_DIRECTOR_DB_USER=director
+      - ICINGAWEB2_MODULE_DIRECTOR_DB_PASSWORD=5zS9eGoMzBvhqIenEaMr
+      - ICINGAWEB2_MODULE_DIRECTOR_DB_CHARSET=utf8
+      - ICINGA2_DB_IDO_DATABASE=icinga_ido
+      - ICINGA2_DB_IDO_USER=icinga_ido
+      - ICINGA2_DB_IDO_PASSWORD=CJQwDN64ZgmDEPjLqXrU
+      - PHP_TIMEZONE=Europe/Paris
+      - DB_TYPE=mysql
+      - DB_HOST=mysql
+      - DB_ROOT_PASSWORD=06ks9Ugo0wjHtleSNe96
+    volumes:
+      - /data/athena/icinga/etc/icinga2:/etc/icinga2
+      - /data/athena/icinga/etc/icingaweb2:/etc/icingaweb2
+      - /data/athena/icinga/log:/var/log
+    ports:
+      - "80:80"
+      - "443:443"
+      - "5665:5665"
+  mysql:
+    image: mariadb:latest
+    container_name: icinga_db
+    restart: "unless-stopped"
+    environment:
+      - "MYSQL_ROOT_PASSWORD=06ks9Ugo0wjHtleSNe96"
+    volumes:
+      - /data/athena/mysql/data:/var/lib/mysql
+  influxdb:
+    image: influxdb
+    container_name: icinga_influxdb
+    restart: on-failure
+    ports:
+      - "8086:8086"
+      - "8083:8083"
+    environment:
+      - INFLUXDB_ADMIN_ENABLED=true
+    volumes:
+      - /data/athena/icinga/influxdb/etc/influxdb.conf:/etc/influxdb/influxdb.conf:ro
+      - /data/athena/icinga/influxdb/data:/var/lib/influxdb
+  grafana:
+    image: grafana/grafana
+    container_name: icinga_grafana
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SERVER_ROOT_URL=http://grafana
+      - GF_SECURITY_ADMIN_PASSWORD=password
+    volumes:
+      - /data/athena/icinga/grafana/etc:/etc/grafana
+      - /data/athena/icinga/grafana/data:/var/lib/grafana
