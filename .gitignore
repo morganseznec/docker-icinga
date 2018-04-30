@@ -1,0 +1,4 @@
+compose/default-postgresql/icinga
+compose/default-postgresql/postgres
+compose/default-mysql/icinga
+compose/default-mysql/mysql
