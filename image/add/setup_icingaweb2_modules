@@ -29,3 +29,7 @@ if evaluate_boolean "${ICINGAWEB2_MODULE_MONITORING:-x}"; then
 else
 	icingacli module disable monitoring || true
 fi
+
+icingacli module enable monitoring || true
+
+echo "=>Icingaweb2 Modules setup [OK]"

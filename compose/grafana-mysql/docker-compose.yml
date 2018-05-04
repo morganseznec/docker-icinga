@@ -6,6 +6,7 @@ services:
       context: ../../image
     container_name: icinga_web
     restart: "unless-stopped"
+    hostname: "icinga-master"
     environment:
       - ICINGAWEB2_DB_DATABASE=icingaweb2
       - ICINGAWEB2_DB_USER=icingaweb2
