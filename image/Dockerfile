@@ -1,14 +1,19 @@
 FROM debian:stretch
 
 LABEL maintainer="Morgan Seznec <contact@morganseznec.com>"
-LABEL version="2.8.2"
+LABEL version="2.8.4"
 
-ARG VERSION_ICINGAWEB2=2.5.1
+ARG VERSION_ICINGAWEB2=2.5.3
 ARG VERSION_DIRECTOR=1.4.3
 ARG VERSION_GRAPHITE=1.0.1
 ARG VERSION_AWS=0.6.0
 ARG VERSION_AWS_SDK=3.52.17
-ARG VERSION_GRAFANA=1.2.1
+ARG VERSION_GRAFANA=1.2.4
+ARG VERSION_BUSINESSPROCESS=2.1.0
+ARG VERSION_VSPHERE=1.1.0
+ARG VERSION_CUBE=1.0.1
+ARG VERSION_REACTBUNDLE=0.3.1
+
 ARG http_proxy=
 
 ENV http_proxy=${http_proxy}
@@ -91,7 +96,27 @@ RUN mkdir -p /usr/share/icingaweb2/modules/ \
     # Icingaweb2 Grafana
     && mkdir -p /usr/share/icingaweb2/modules/grafana \
     && wget -q --no-cookies -O - "https://github.com/Mikesch-mp/icingaweb2-module-grafana/archive/v${VERSION_GRAFANA}.tar.gz" \
-    | tar xz --strip-components=1 --directory=/usr/share/icingaweb2/modules/grafana -f - icingaweb2-module-grafana-${VERSION_GRAFANA}/
+    | tar xz --strip-components=1 --directory=/usr/share/icingaweb2/modules/grafana -f - icingaweb2-module-grafana-${VERSION_GRAFANA}/ \
+    # Icingaweb2 Vsphere
+    && mkdir -p /usr/share/icingaweb2/modules/vsphere \
+    && wget -q --no-cookies -O - "https://github.com/Icinga/icingaweb2-module-vsphere/archive/v${VERSION_VSPHERE}.tar.gz" \
+    | tar xz --strip-components=1 --directory=/usr/share/icingaweb2/modules/vsphere -f - icingaweb2-module-vsphere-${VERSION_VSPHERE}/
+    # Icingaweb2 Top Level View
+    && mkdir -p /usr/share/icingaweb2/modules/toplevelview \
+    && wget -q --no-cookies -O - "https://github.com/Icinga/icingaweb2-module-toplevelview/archive/v${VERSION_TOPLEVELVIEW}.tar.gz" \
+    | tar xz --strip-components=1 --directory=/usr/share/icingaweb2/modules/toplevelview -f - icingaweb2-module-toplevelview-${VERSION_TOPLEVELVIEW}/ \
+    # Icingaweb2 Cube
+    && mkdir -p /usr/share/icingaweb2/modules/cube \
+    && wget -q --no-cookies -O - "https://github.com/Icinga/icingaweb2-module-cube/archive/v${VERSION_CUBE}.tar.gz" \
+    | tar xz --strip-components=1 --directory=/usr/share/icingaweb2/modules/cube -f - icingaweb2-module-cube-${VERSION_CUBE}/ \
+    # Icingaweb2 Business Process
+    && mkdir -p /usr/share/icingaweb2/modules/businessprocess \
+    && wget -q --no-cookies -O - "https://github.com/Icinga/icingaweb2-module-businessprocess/archive/v${VERSION_BUSINESSPROCESS}.tar.gz" \
+    | tar xz --strip-components=1 --directory=/usr/share/icingaweb2/modules/businessprocess -f - icingaweb2-module-businessprocess-${VERSION_BUSINESSPROCESS}/ \
+    # Icingaweb2 React Bundle
+    && mkdir -p /usr/share/icingaweb2/modules/reactbundle \
+    && wget -q --no-cookies -O - "https://github.com/Icinga/icingaweb2-module-reactbundle/archive/v${VERSION_REACTBUNDLE}.tar.gz" \
+    | tar xz --strip-components=1 --directory=/usr/share/icingaweb2/modules/reactbundle -f - icingaweb2-module-reactbundle-${VERSION_REACTBUNDLE}/
 
 EXPOSE 80 443 5665
 
