@@ -31,3 +31,4 @@ else
 fi
 
 echo "=>Icingaweb2 Modules setup [OK]"
+icingacli module enable monitoring || true

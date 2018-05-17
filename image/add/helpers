@@ -45,9 +45,9 @@ mysql_create_database() {
 	if [ "$DATABASE_EXISTS" != "1" ]; then
 			echo "=>${5} database does not exist... creating it"
 			mysql -h "${1}" -P "${2}" -u "${3}" -p"${4}" <<< "CREATE DATABASE IF NOT EXISTS ${5} CHARACTER SET '${6}';"
-		if [ -f "${7}" ]; then
-			mysql -h "${1}" -P "${2}" -u "${3}" -p"${4}" "${5}" < "${7}"
-		fi
+			if [ -f "${7}" ]; then
+				mysql -h "${1}" -P "${2}" -u "${3}" -p"${4}" "${5}" < "${7}"
+			fi
 	fi
 }
 
@@ -101,7 +101,9 @@ pgsql_create_database() {
 	else
 		echo "=>${5} database does not exist... creating it"
 		PGPASSWORD="${4}" psql -h "${1}" -p "${2}" -U "${3}" -c "CREATE DATABASE ${5} ENCODING '${6}';"
-		PGPASSWORD="${4}" psql -h "${1}" -p "${2}" -U "${3}" -d "${5}" < "${7}"
+		if [ -f "${7}" ]; then
+			PGPASSWORD="${4}" psql -h "${1}" -p "${2}" -U "${3}" -d "${5}" < "${7}"
+		fi
 	fi
 }
 
