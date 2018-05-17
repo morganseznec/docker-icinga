@@ -100,7 +100,7 @@ RUN mkdir -p /usr/share/icingaweb2/modules/ \
     # Icingaweb2 Vsphere
     && mkdir -p /usr/share/icingaweb2/modules/vsphere \
     && wget -q --no-cookies -O - "https://github.com/Icinga/icingaweb2-module-vsphere/archive/v${VERSION_VSPHERE}.tar.gz" \
-    | tar xz --strip-components=1 --directory=/usr/share/icingaweb2/modules/vsphere -f - icingaweb2-module-vsphere-${VERSION_VSPHERE}/
+    | tar xz --strip-components=1 --directory=/usr/share/icingaweb2/modules/vsphere -f - icingaweb2-module-vsphere-${VERSION_VSPHERE}/ \
     # Icingaweb2 Top Level View
     && mkdir -p /usr/share/icingaweb2/modules/toplevelview \
     && wget -q --no-cookies -O - "https://github.com/Icinga/icingaweb2-module-toplevelview/archive/v${VERSION_TOPLEVELVIEW}.tar.gz" \
