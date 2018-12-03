@@ -4,22 +4,14 @@ CONFIGURED_FILE="/etc/icinga2/CONFIGURED"
 PATH_ICINGAWEB2=/etc/icingaweb2
 PATH_ICINGA2=/etc/icinga2
 
-DB_TYPE=${DB_TYPE:="mysql"} # or pgsql
-DB_ROOT_USER=${DB_ROOT_USER:="root"}
-if [ -z ${DB_PORT:+x} ]; then
-	if [ "${DB_HOST}" == "mysql" ]; then
-		DB_PORT=3306
-	else 
-		DB_PORT=5432
-	fi
-fi
+POSTGRES_PORT=${POSTGRES_PORT:="5432"}
 
 # Load helper functions
 . /usr/local/bin/helpers
 
-if [ ${DB_HOST:+x} ]; then
-	db_wait ${DB_HOST} ${DB_PORT}
-	db_test_credentials "${DB_HOST}" "${DB_PORT}" "" "${DB_ROOT_USER}" "${DB_ROOT_PASSWORD}"
+if [ ${POSTGRES_HOST:+x} ]; then
+	pgsql_wait ${POSTGRES_HOST} ${POSTGRES_PORT}
+	pgsql_test_credentials "${POSTGRES_HOST}" "${POSTGRES_PORT}"
 fi
 
 if [ -f "$CONFIGURED_FILE" ]; then
@@ -28,7 +20,7 @@ else
 	. /usr/local/bin/setup_php
 	. /usr/local/bin/setup_icinga2
 	. /usr/local/bin/setup_icinga2_features
-	if [ ${DB_HOST:+x} ]; then
+	if [ ${POSTGRES_HOST:+x} ]; then
 		. /usr/local/bin/setup_icingaweb2
 		. /usr/local/bin/setup_icingaweb2_modules
 	fi

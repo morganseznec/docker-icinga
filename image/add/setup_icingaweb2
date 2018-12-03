@@ -3,11 +3,11 @@
 PATH_ICINGAWEB2=/etc/icingaweb2
 SRC_ICINGAWEB2=/etc/icingaweb2.orig
 
-ICINGAWEB2_DB_TYPE=${ICINGAWEB2_DB_TYPE:="${DB_TYPE}"}
-ICINGAWEB2_DB_HOST=${ICINGAWEB2_DB_HOST:="${DB_HOST}"}
-ICINGAWEB2_DB_PORT=${ICINGAWEB2_DB_PORT:="${DB_PORT}"}
+ICINGAWEB2_DB_HOST=${ICINGAWEB2_DB_HOST:="${POSTGRES_HOST}"}
+ICINGAWEB2_DB_PORT=${ICINGAWEB2_DB_PORT:="${POSTGRES_PORT}"}
 ICINGAWEB2_DB_DATABASE=${ICINGAWEB2_DB_DATABASE:="icingaweb2"}
 ICINGAWEB2_DB_USER=${ICINGAWEB2_DB_USER:="icingaweb2"}
+ICINGAWEB2_DB_PASSWORD=${ICINGAWEB2_DB_PASSWORD:="changeme"}
 ICINGAWEB2_DB_CHARSET=${ICINGAWEB2_DB_CHARSET:="latin1"}
 ICINGAWEB2_DB_PERSISTENT=${ICINGAWEB2_DB_PERSISTENT:=0}
 ICINGAWEB2_DB_USE_SSL=${ICINGAWEB2_DB_USE_SSL:=0}
@@ -21,21 +21,17 @@ mkdir -p /var/log/icingaweb2
 chown -R www-data:adm /var/log/icingaweb2
 
 # Create Icingaweb2 database
-db_create_database                                              \
+pgsql_create_database                                           \
         ${ICINGAWEB2_DB_HOST}                                   \
         ${ICINGAWEB2_DB_PORT}                                   \
-        ${DB_ROOT_USER}                                         \
-        ${DB_ROOT_PASSWORD}                                     \
         ${ICINGAWEB2_DB_DATABASE}                               \
         ${ICINGAWEB2_DB_CHARSET}                                \
-        "/usr/share/icingaweb2/etc/schema/${DB_TYPE}.schema.sql";
+        "/usr/share/icingaweb2/etc/schema/pgsql.schema.sql";
 
 # Create database user for Icingaweb2 database
-db_create_user                                                  \
+pgsql_create_user                                               \
         ${ICINGAWEB2_DB_HOST}                                   \
         ${ICINGAWEB2_DB_PORT}                                   \
-        ${DB_ROOT_USER}                                         \
-        ${DB_ROOT_PASSWORD}                                     \
         ${ICINGAWEB2_DB_DATABASE}                               \
         ${ICINGAWEB2_DB_USER}                                   \
         ${ICINGAWEB2_DB_PASSWORD}
@@ -46,7 +42,7 @@ if [ -z "$(ls -A $PATH_ICINGAWEB2/resources.ini 2>/dev/null)" ]; then
     cat > "$PATH_ICINGAWEB2/resources.ini" <<-END
 [icingaweb_db]
 type = "db"
-db = "${DB_TYPE}"
+db = "pgsql"
 host = "${ICINGAWEB2_DB_HOST}"
 port = "${ICINGAWEB2_DB_PORT}"
 dbname = "${ICINGAWEB2_DB_DATABASE}"
@@ -58,7 +54,7 @@ use_ssl = "${ICINGAWEB2_DB_USE_SSL}"
 
 [icinga_ido]
 type = "db"
-db = "${DB_TYPE}"
+db = "pgsql"
 host = "${ICINGA2_DB_IDO_HOST}"
 port = "${ICINGA2_DB_IDO_PORT}"
 dbname = "${ICINGA2_DB_IDO_DATABASE}"
@@ -129,11 +125,9 @@ fi
 # Admin account
 ICINGAWEB2_ADMIN_PASSWORD_HASH=$(openssl passwd -1 "${ICINGAWEB2_ADMIN_PASSWORD}")
 
-db_insert_admin_user                    \
-    ${DB_HOST}                          \
-    ${DB_PORT}                          \
-    ${DB_ROOT_USER}                     \
-    ${DB_ROOT_PASSWORD}                 \
+pgsql_insert_admin_user                 \
+    ${POSTGRES_HOST}                    \
+    ${POSTGRES_PORT}                    \
     ${ICINGAWEB2_DB_DATABASE}           \
     ${ICINGAWEB2_ADMIN_USER}            \
     ${ICINGAWEB2_ADMIN_PASSWORD_HASH}

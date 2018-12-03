@@ -4,8 +4,6 @@ services:
   icingaweb2:
     build:
       context: ../image
-      args:
-        http_proxy: "http://10.1.1.251:3128"
     container_name: icinga_web
     restart: on-failure
     environment:

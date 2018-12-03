@@ -8,7 +8,7 @@ if [ -z ${ICINGAWEB2_MODULE_DIRECTOR_DB_DATABASE+x} ]; then ICINGAWEB2_MODULE_DI
 if [ -z ${ICINGAWEB2_MODULE_DIRECTOR_DB_USER+x} ]; then ICINGAWEB2_MODULE_DIRECTOR_DB_USER="director"; fi
 if [ -z ${ICINGAWEB2_MODULE_DIRECTOR_DB_PASSWORD+x} ]; then 
     echo "=>Icingaweb2 Director setup [ERROR]";
-    echo "=>Icingaweb2 Director MySQL password not defined";
+    echo "=>Icingaweb2 Director PostgreSQL password not defined";
     exit 1;
 fi
 if [ -z ${ICINGAWEB2_MODULE_DIRECTOR_DB_CHARSET+x} ]; then ICINGAWEB2_MODULE_DIRECTOR_DB_CHARSET="utf8"; fi
@@ -19,20 +19,16 @@ if [ -z ${ICINGA2_API_DIRECTOR_USER+x} ]; then ICINGA2_API_DIRECTOR_USER="direct
 if [ -z ${ICINGA2_API_DIRECTOR_PASSWORD+x} ]; then ICINGA2_API_DIRECTOR_PASSWORD="changeme"; fi
 
 # Create director database
-db_create_database                                              \
+pgsql_create_database                                           \
         ${ICINGAWEB2_DB_HOST}                                   \
         ${ICINGAWEB2_DB_PORT}                                   \
-        ${DB_ROOT_USER}                                         \
-        ${DB_ROOT_PASSWORD}                                     \
         ${ICINGAWEB2_MODULE_DIRECTOR_DB_DATABASE}               \
         ${ICINGAWEB2_MODULE_DIRECTOR_DB_CHARSET}                \
         ""
 # Create director user
-db_create_user                                                  \
+pgsql_create_user                                               \
         ${ICINGAWEB2_DB_HOST}                                   \
         ${ICINGAWEB2_DB_PORT}                                   \
-        ${DB_ROOT_USER}                                         \
-        ${DB_ROOT_PASSWORD}                                     \
         ${ICINGAWEB2_MODULE_DIRECTOR_DB_DATABASE}               \
         ${ICINGAWEB2_MODULE_DIRECTOR_DB_USER}                   \
         ${ICINGAWEB2_MODULE_DIRECTOR_DB_PASSWORD}

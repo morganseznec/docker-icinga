@@ -1,18 +1,14 @@
 FROM debian:stretch
 
 LABEL maintainer="Morgan Seznec <contact@morganseznec.com>"
-LABEL version="2.8.2"
+LABEL version="2.10.2"
 
-ARG VERSION_ICINGAWEB2=2.5.1
-ARG VERSION_DIRECTOR=1.4.3
-ARG VERSION_GRAPHITE=1.0.1
+ARG VERSION_ICINGAWEB2=2.6.2
+ARG VERSION_DIRECTOR=1.5.2
+ARG VERSION_GRAPHITE=1.1.0
 ARG VERSION_AWS=0.6.0
-ARG VERSION_AWS_SDK=3.52.17
-ARG VERSION_GRAFANA=1.2.1
-ARG http_proxy=
-
-ENV http_proxy=${http_proxy}
-ENV https_proxy=${http_proxy}
+ARG VERSION_AWS_SDK=3.80.1
+ARG VERSION_GRAFANA=1.3.2
 
 RUN apt-get update \
     && apt-get upgrade -y \
@@ -36,7 +32,6 @@ RUN  curl -s https://packages.icinga.com/icinga.key \
           postgresql-client \
           php-curl \
           php-ldap \
-          php-mysql \
           php-pgsql \
           php-intl \
           php-gd \
@@ -51,7 +46,7 @@ RUN  curl -s https://packages.icinga.com/icinga.key \
           unzip \
           wget \
           icinga2 \
-          icinga2-ido-mysql \
+          icinga2-ido-pgsql \
           icingacli \
           icingaweb2 \
           monitoring-plugins \
@@ -105,5 +100,4 @@ RUN    chmod +x /usr/local/bin/docker-entrypoint.sh             \
     && chmod +x /usr/local/bin/helpers                          \
     && chmod +x /usr/local/bin/setup_*
 
-# Initialize and run Supervisor
 ENTRYPOINT ["docker-entrypoint.sh"]

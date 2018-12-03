@@ -1,19 +1,19 @@
 #!/bin/bash
 
-if [ -z ${DB_HOST:+x} ]; then 
+if [ -z ${POSTGRES_HOST:+x} ]; then 
     echo "=>Icinga2 setup [ERROR]";
-    echo "=>Icinga2 ${DB_TYPE} Host not defined";
+    echo "=>Icinga2 PostgreSQL Host not defined";
     exit 1;
 fi
 
-if [ -z ${DB_ROOT_PASSWORD:+x} ]; then 
+if [ -z ${POSTGRES_PASSWORD:+x} ]; then 
     echo "=>Icinga2 setup [ERROR]";
-    echo "=>Icinga2 DB ${DB_TYPE} ROOT password not defined";
+    echo "=>Icinga2 PostgreSQL password not defined";
     exit 1;
 fi
 
-ICINGA2_DB_IDO_HOST=${ICINGA2_DB_IDO_HOST:="${DB_HOST}"}
-ICINGA2_DB_IDO_PORT=${ICINGA2_DB_IDO_PORT:=${DB_PORT}}
+ICINGA2_DB_IDO_HOST=${ICINGA2_DB_IDO_HOST:="${POSTGRES_HOST}"}
+ICINGA2_DB_IDO_PORT=${ICINGA2_DB_IDO_PORT:=${POSTGRES_PORT}}
 ICINGA2_DB_IDO_DATABASE=${ICINGA2_DB_IDO_DATABASE:="icinga_ido"}
 ICINGA2_DB_IDO_USER=${ICINGA2_DB_IDO_USER:="icinga_ido"}
 ICINGA2_DB_IDO_CHARSET=${ICINGA2_DB_IDO_CHARSET:="latin1"}
@@ -22,11 +22,9 @@ ICINGA2_DB_IDO_USE_SSL=${ICINGA2_DB_IDO_USE_SSL:=0}
 
 if [ -z ${ICINGA2_DB_IDO_PASSWORD:+x} ]; then 
     echo "=>Icinga2 IDO setup [ERROR]";
-    echo "=>Icinga2 IDO ${DB_TYPE} password not defined";
+    echo "=>Icinga2 IDO password not defined";
     exit 1;
 fi
-
-DB_OBJECT_NAME="IdoMysqlConnection"
 
 PATH_ICINGA2=/etc/icinga2
 SRC_ICINGA2=/etc/icinga2.orig
@@ -47,38 +45,26 @@ chown -R nagios:nagios /var/spool/icinga2
 chown -R nagios:nagios /var/cache/icinga2
 chown -R nagios:root /etc/icinga2
 
-if [ ${DB_HOST:+x} ]; then
+# Create Icinga IDO database
+pgsql_create_database                                           \
+        ${POSTGRES_HOST}                                        \
+        ${POSTGRES_PORT}                                        \
+        ${ICINGA2_DB_IDO_DATABASE}                              \
+        ${ICINGA2_DB_IDO_CHARSET}                               \
+        "/usr/share/icinga2-ido-pgsql/schema/pgsql.sql";
 
-        icinga2 feature enable "ido-${DB_TYPE}"
+# Create database user for IDO database
+pgsql_create_user                                               \
+        ${POSTGRES_HOST}                                        \
+        ${POSTGRES_PORT}                                        \
+        ${ICINGA2_DB_IDO_DATABASE}                              \
+        ${ICINGA2_DB_IDO_USER}                                  \
+        ${ICINGA2_DB_IDO_PASSWORD}
 
-        # Create Icinga IDO database
-        db_create_database                                              \
-                ${DB_HOST}                                              \
-                ${DB_PORT}                                              \
-                ${DB_ROOT_USER}                                         \
-                ${DB_ROOT_PASSWORD}                                     \
-                ${ICINGA2_DB_IDO_DATABASE}                              \
-                ${ICINGA2_DB_IDO_CHARSET}                               \
-                "/usr/share/icinga2-ido-${DB_TYPE}/schema/${DB_TYPE}.sql";
+cat > /etc/icinga2/features-available/ido-pgsql.conf <<-END
+library "db_ido_pgsql"
 
-        # Create database user for IDO database
-        db_create_user                                                  \
-                ${DB_HOST}                                              \
-                ${DB_PORT}                                              \
-                ${DB_ROOT_USER}                                         \
-                ${DB_ROOT_PASSWORD}                                     \
-                ${ICINGA2_DB_IDO_DATABASE}                              \
-                ${ICINGA2_DB_IDO_USER}                                  \
-                ${ICINGA2_DB_IDO_PASSWORD}
-        
-        if [ "${DB_TYPE}" == "pgsql" ]; then
-                DB_OBJECT_NAME="IdoPgsqlConnection"
-        fi
-
-        cat > /etc/icinga2/features-available/ido-${DB_TYPE}.conf <<-END
-library "db_ido_${DB_TYPE}"
-
-object $DB_OBJECT_NAME "ido-${DB_TYPE}" {
+object IdoPgsqlConnection "ido-pgsql" {
 user     = "${ICINGA2_DB_IDO_USER}"
 password = "${ICINGA2_DB_IDO_PASSWORD}"
 host     = "${ICINGA2_DB_IDO_HOST}"
@@ -86,11 +72,9 @@ port     =  ${ICINGA2_DB_IDO_PORT}
 database = "${ICINGA2_DB_IDO_DATABASE}"
 }
 END
-fi
 
 # enable necessary features
-icinga2 feature enable livestatus compatlog command
-
+icinga2 feature enable ido-pgsql livestatus compatlog command
 # enable modules
 icingacli module enable monitoring
 icingacli module enable doc
