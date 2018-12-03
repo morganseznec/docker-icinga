@@ -24,7 +24,7 @@ pgsql_create_database                                           \
         ${ICINGAWEB2_DB_PORT}                                   \
         ${ICINGAWEB2_MODULE_DIRECTOR_DB_DATABASE}               \
         ${ICINGAWEB2_MODULE_DIRECTOR_DB_CHARSET}                \
-        ""
+        "/usr/share/icingaweb2/modules/director/schema/${ICINGAWEB2_MODULE_DIRECTOR_DB_TYPE}.sql"
 # Create director user
 pgsql_create_user                                               \
         ${ICINGAWEB2_DB_HOST}                                   \
@@ -33,7 +33,7 @@ pgsql_create_user                                               \
         ${ICINGAWEB2_MODULE_DIRECTOR_DB_USER}                   \
         ${ICINGAWEB2_MODULE_DIRECTOR_DB_PASSWORD}
 
-cat > "$PATH_ICINGAWEB2/resources.ini.temp" <<-END
+cat > "$PATH_ICINGAWEB2/resources.2.ini" <<-END
 
 [director]
 type = "db"
@@ -48,13 +48,28 @@ persistent = "${ICINGAWEB2_MODULE_DIRECTOR_DB_PERSISTENT}"
 use_ssl = "${ICINGAWEB2_MODULE_DIRECTOR_DB_USE_SSL}"
 END
 
-cat > "$PATH_ICINGA2/conf.d/icinga2-api-user.conf" <<-END
+cat "$PATH_ICINGAWEB2/resources.1.ini" "$PATH_ICINGAWEB2/resources.2.ini" > "$PATH_ICINGAWEB2/resources.ini"
+rm -rf "$PATH_ICINGAWEB2/resources.2.ini"
+
+cat > "$PATH_ICINGA2/conf.d/api-user.conf" <<-END
 object ApiUser "${ICINGA2_API_DIRECTOR_USER}" {
     password = "${ICINGA2_API_DIRECTOR_PASSWORD}"
     permissions = [ "*" ]
 }
 END
 
+cat > "$PATH_ICINGAWEB2/modules/director/kickstart.ini" <<-END
+[config]
+endpoint = icinga-master
+; host = 127.0.0.1
+; port = 5665
+username = ${ICINGA2_API_DIRECTOR_USER}
+password = ${ICINGA2_API_DIRECTOR_PASSWORD}
+END
+
 icingacli module enable director
 
+icingacli director kickstart run
+
 echo "=>Icinga2 Director setup [OK]"
+

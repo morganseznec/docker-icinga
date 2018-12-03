@@ -37,9 +37,7 @@ pgsql_create_user                                               \
         ${ICINGAWEB2_DB_PASSWORD}
 
 
-if [ -z "$(ls -A $PATH_ICINGAWEB2/resources.ini 2>/dev/null)" ]; then
-
-    cat > "$PATH_ICINGAWEB2/resources.ini" <<-END
+cat > "$PATH_ICINGAWEB2/resources.1.ini" <<-END
 [icingaweb_db]
 type = "db"
 db = "pgsql"
@@ -64,8 +62,6 @@ charset = "${ICINGA2_DB_IDO_CHARSET}"
 persistent = "${ICINGA2_DB_IDO_PERSISTENT}"
 use_ssl = "${ICINGA2_DB_IDO_USE_SSL}"
 END
-
-fi
 
 # Icingaweb2 Admin configuration
 if [ -z ${ICINGAWEB2_ADMIN_USER+x} ];then ICINGAWEB2_ADMIN_USER="icingaadmin"; fi

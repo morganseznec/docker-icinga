@@ -2,6 +2,7 @@
 
 # InfluxDB
 if evaluate_boolean "${ICINGA2_FEATURE_INFLUXDB:-x}"; then
+        echo "Icingoa2 => Enabling influxDB feature..."
 	. /usr/local/bin/setup_icinga2_feature_influxdb
 else
 	icinga2 feature disable influxdb || true
